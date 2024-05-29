@@ -7,48 +7,48 @@
 
 /* eslint-disable jsx-a11y/no-autofocus */
 
-import React, {useEffect, useReducer, useRef, useState} from 'react';
-import clsx from 'clsx';
+import React, { useEffect, useReducer, useRef, useState } from "react";
+import clsx from "clsx";
 
-import algoliaSearchHelper from 'algoliasearch-helper';
-import algoliaSearch from 'algoliasearch/lite';
+import algoliaSearchHelper from "algoliasearch-helper";
+import algoliaSearch from "algoliasearch/lite";
 
-import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
-import Head from '@docusaurus/Head';
-import Link from '@docusaurus/Link';
-import {useAllDocsData} from '@docusaurus/plugin-content-docs/client';
+import ExecutionEnvironment from "@docusaurus/ExecutionEnvironment";
+import Head from "@docusaurus/Head";
+import Link from "@docusaurus/Link";
+import { useAllDocsData } from "@docusaurus/plugin-content-docs/client";
 import {
   HtmlClassNameProvider,
   useEvent,
   usePluralForm,
   useSearchQueryString,
-} from '@docusaurus/theme-common';
-import {useTitleFormatter} from '@docusaurus/theme-common/internal';
-import Translate, {translate} from '@docusaurus/Translate';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+} from "@docusaurus/theme-common";
+import { useTitleFormatter } from "@docusaurus/theme-common/internal";
+import Translate, { translate } from "@docusaurus/Translate";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import {
   useAlgoliaThemeConfig,
   useSearchResultUrlProcessor,
-} from '@docusaurus/theme-search-algolia/client';
-import Layout from '@theme/Layout';
-import Heading from '@theme/Heading';
-import styles from './styles.module.css';
+} from "@docusaurus/theme-search-algolia/client";
+import Layout from "@theme/Layout";
+import Heading from "@theme/Heading";
+import styles from "./styles.module.css";
 
 // Very simple pluralization: probably good enough for now
 function useDocumentsFoundPlural() {
-  const {selectMessage} = usePluralForm();
+  const { selectMessage } = usePluralForm();
   return (count: number) =>
     selectMessage(
       count,
       translate(
         {
-          id: 'theme.SearchPage.documentsFound.plurals',
+          id: "theme.SearchPage.documentsFound.plurals",
           description:
             'Pluralized label for "{count} documents found". Use as much plural forms (separated by "|") as your language support (see https://www.unicode.org/cldr/cldr-aux/charts/34/supplemental/language_plural_rules.html)',
-          message: 'One document found|{count} documents found',
+          message: "One document found|{count} documents found",
         },
-        {count},
-      ),
+        { count }
+      )
     );
 }
 
@@ -65,16 +65,16 @@ function useDocsSearchVersionsHelpers() {
         ...acc,
         [pluginId]: pluginData.versions[0]!.name,
       }),
-      {},
-    ),
+      {}
+    )
   );
 
   // Set the value of a single select menu
   const setSearchVersion = (pluginId: string, searchVersion: string) =>
-    setSearchVersions((s) => ({...s, [pluginId]: searchVersion}));
+    setSearchVersions((s) => ({ ...s, [pluginId]: searchVersion }));
 
   const versioningEnabled = Object.values(allDocsData).some(
-    (docsData) => docsData.versions.length > 1,
+    (docsData) => docsData.versions.length > 1
   );
 
   return {
@@ -92,7 +92,7 @@ function SearchVersionSelectList({
   docsSearchVersionsHelpers: ReturnType<typeof useDocsSearchVersionsHelpers>;
 }) {
   const versionedPluginEntries = Object.entries(
-    docsSearchVersionsHelpers.allDocsData,
+    docsSearchVersionsHelpers.allDocsData
   )
     // Do not show a version select for unversioned docs plugin instances
     .filter(([, docsData]) => docsData.versions.length > 1);
@@ -100,25 +100,27 @@ function SearchVersionSelectList({
   return (
     <div
       className={clsx(
-        'col',
-        'col--3',
-        'padding-left--none',
-        styles.searchVersionColumn,
-      )}>
+        "col",
+        "col--3",
+        "padding-left--none",
+        styles.searchVersionColumn
+      )}
+    >
       {versionedPluginEntries.map(([pluginId, docsData]) => {
         const labelPrefix =
-          versionedPluginEntries.length > 1 ? `${pluginId}: ` : '';
+          versionedPluginEntries.length > 1 ? `${pluginId}: ` : "";
         return (
           <select
             key={pluginId}
             onChange={(e) =>
               docsSearchVersionsHelpers.setSearchVersion(
                 pluginId,
-                e.target.value,
+                e.target.value
               )
             }
             defaultValue={docsSearchVersionsHelpers.searchVersions[pluginId]}
-            className={styles.searchVersionInput}>
+            className={styles.searchVersionInput}
+          >
             {docsData.versions.map((version, i) => (
               <option
                 key={i}
@@ -149,18 +151,19 @@ type ResultDispatcherState = {
 };
 
 type ResultDispatcher =
-  | {type: 'reset'; value?: undefined}
-  | {type: 'loading'; value?: undefined}
-  | {type: 'update'; value: ResultDispatcherState}
-  | {type: 'advance'; value?: undefined};
+  | { type: "reset"; value?: undefined }
+  | { type: "loading"; value?: undefined }
+  | { type: "update"; value: ResultDispatcherState }
+  | { type: "advance"; value?: undefined };
 
 function SearchPageContent(): JSX.Element {
   const {
-    i18n: {currentLocale},
+    i18n: { currentLocale },
   } = useDocusaurusContext();
   const {
-    algolia: {appId, apiKey, indexName},
+    algolia: { appId, apiKey, indexName, contextualSearch },
   } = useAlgoliaThemeConfig();
+
   const processSearchResultUrl = useSearchResultUrlProcessor();
   const documentsFoundPlural = useDocumentsFoundPlural();
 
@@ -178,13 +181,13 @@ function SearchPageContent(): JSX.Element {
   const [searchResultState, searchResultStateDispatcher] = useReducer(
     (prevState: ResultDispatcherState, data: ResultDispatcher) => {
       switch (data.type) {
-        case 'reset': {
+        case "reset": {
           return initialSearchResultState;
         }
-        case 'loading': {
-          return {...prevState, loading: true};
+        case "loading": {
+          return { ...prevState, loading: true };
         }
-        case 'update': {
+        case "update": {
           if (searchQuery !== data.value.query) {
             return prevState;
           }
@@ -197,7 +200,7 @@ function SearchPageContent(): JSX.Element {
                 : prevState.items.concat(data.value.items),
           };
         }
-        case 'advance': {
+        case "advance": {
           const hasMore = prevState.totalPages! > prevState.lastPage! + 1;
 
           return {
@@ -210,56 +213,61 @@ function SearchPageContent(): JSX.Element {
           return prevState;
       }
     },
-    initialSearchResultState,
+    initialSearchResultState
   );
+
+  // respect settings from the theme config for facets
+  const disjunctiveFacets = contextualSearch
+    ? ["language", "docusaurus_tag"]
+    : [];
 
   const algoliaClient = algoliaSearch(appId, apiKey);
   const algoliaHelper = algoliaSearchHelper(algoliaClient, indexName, {
     hitsPerPage: 15,
     advancedSyntax: true,
-    disjunctiveFacets: ['language', 'docusaurus_tag'],
+    disjunctiveFacets: disjunctiveFacets,
   });
 
   algoliaHelper.on(
-    'result',
-    ({results: {query, hits, page, nbHits, nbPages}}) => {
-      if (query === '' || !Array.isArray(hits)) {
-        searchResultStateDispatcher({type: 'reset'});
+    "result",
+    ({ results: { query, hits, page, nbHits, nbPages } }) => {
+      if (query === "" || !Array.isArray(hits)) {
+        searchResultStateDispatcher({ type: "reset" });
         return;
       }
 
       const sanitizeValue = (value: string) =>
         value.replace(
           /algolia-docsearch-suggestion--highlight/g,
-          'search-result-match',
+          "search-result-match"
         );
 
       const items = hits.map(
         ({
           url,
-          _highlightResult: {hierarchy},
+          _highlightResult: { hierarchy },
           _snippetResult: snippet = {},
         }: {
           url: string;
-          _highlightResult: {hierarchy: {[key: string]: {value: string}}};
-          _snippetResult: {content?: {value: string}};
+          _highlightResult: { hierarchy: { [key: string]: { value: string } } };
+          _snippetResult: { content?: { value: string } };
         }) => {
           const titles = Object.keys(hierarchy).map((key) =>
-            sanitizeValue(hierarchy[key]!.value),
+            sanitizeValue(hierarchy[key]!.value)
           );
           return {
             title: titles.pop()!,
             url: processSearchResultUrl(url),
             summary: snippet.content
               ? `${sanitizeValue(snippet.content.value)}...`
-              : '',
+              : "",
             breadcrumbs: titles,
           };
-        },
+        }
       );
 
       searchResultStateDispatcher({
-        type: 'update',
+        type: "update",
         value: {
           items,
           query,
@@ -270,7 +278,7 @@ function SearchPageContent(): JSX.Element {
           loading: false,
         },
       });
-    },
+    }
   );
 
   const [loaderRef, setLoaderRef] = useState<HTMLDivElement | null>(null);
@@ -281,49 +289,51 @@ function SearchPageContent(): JSX.Element {
         (entries) => {
           const {
             isIntersecting,
-            boundingClientRect: {y: currentY},
+            boundingClientRect: { y: currentY },
           } = entries[0]!;
 
           if (isIntersecting && prevY.current > currentY) {
-            searchResultStateDispatcher({type: 'advance'});
+            searchResultStateDispatcher({ type: "advance" });
           }
 
           prevY.current = currentY;
         },
-        {threshold: 1},
-      ),
+        { threshold: 1 }
+      )
   );
 
   const getTitle = () =>
     searchQuery
       ? translate(
           {
-            id: 'theme.SearchPage.existingResultsTitle',
+            id: "theme.SearchPage.existingResultsTitle",
             message: 'Search results for "{query}"',
-            description: 'The search page title for non-empty query',
+            description: "The search page title for non-empty query",
           },
           {
             query: searchQuery,
-          },
+          }
         )
       : translate({
-          id: 'theme.SearchPage.emptyResultsTitle',
-          message: 'Search the documentation',
-          description: 'The search page title for empty query',
+          id: "theme.SearchPage.emptyResultsTitle",
+          message: "Search the documentation",
+          description: "The search page title for empty query",
         });
 
   const makeSearch = useEvent((page: number = 0) => {
-    algoliaHelper.addDisjunctiveFacetRefinement('docusaurus_tag', 'default');
-    algoliaHelper.addDisjunctiveFacetRefinement('language', currentLocale);
+    if (contextualSearch) {
+      algoliaHelper.addDisjunctiveFacetRefinement("docusaurus_tag", "default");
+      algoliaHelper.addDisjunctiveFacetRefinement("language", currentLocale);
 
-    Object.entries(docsSearchVersionsHelpers.searchVersions).forEach(
-      ([pluginId, searchVersion]) => {
-        algoliaHelper.addDisjunctiveFacetRefinement(
-          'docusaurus_tag',
-          `docs-${pluginId}-${searchVersion}`,
-        );
-      },
-    );
+      Object.entries(docsSearchVersionsHelpers.searchVersions).forEach(
+        ([pluginId, searchVersion]) => {
+          algoliaHelper.addDisjunctiveFacetRefinement(
+            "docusaurus_tag",
+            `docs-${pluginId}-${searchVersion}`
+          );
+        }
+      );
+    }
 
     algoliaHelper.setQuery(searchQuery).setPage(page).search();
   });
@@ -341,10 +351,10 @@ function SearchPageContent(): JSX.Element {
   }, [loaderRef]);
 
   useEffect(() => {
-    searchResultStateDispatcher({type: 'reset'});
+    searchResultStateDispatcher({ type: "reset" });
 
     if (searchQuery) {
-      searchResultStateDispatcher({type: 'loading'});
+      searchResultStateDispatcher({ type: "loading" });
 
       setTimeout(() => {
         makeSearch();
@@ -376,23 +386,24 @@ function SearchPageContent(): JSX.Element {
 
         <form className="row" onSubmit={(e) => e.preventDefault()}>
           <div
-            className={clsx('col', styles.searchQueryColumn, {
-              'col--9': docsSearchVersionsHelpers.versioningEnabled,
-              'col--12': !docsSearchVersionsHelpers.versioningEnabled,
-            })}>
+            className={clsx("col", styles.searchQueryColumn, {
+              "col--9": docsSearchVersionsHelpers.versioningEnabled,
+              "col--12": !docsSearchVersionsHelpers.versioningEnabled,
+            })}
+          >
             <input
               type="search"
               name="q"
               className={styles.searchQueryInput}
               placeholder={translate({
-                id: 'theme.SearchPage.inputPlaceholder',
-                message: 'Type your search here',
-                description: 'The placeholder for search page input',
+                id: "theme.SearchPage.inputPlaceholder",
+                message: "Type your search here",
+                description: "The placeholder for search page input",
               })}
               aria-label={translate({
-                id: 'theme.SearchPage.inputLabel',
-                message: 'Search',
-                description: 'The ARIA label for search page input',
+                id: "theme.SearchPage.inputLabel",
+                message: "Search",
+                description: "The ARIA label for search page input",
               })}
               onChange={(e) => setSearchQuery(e.target.value)}
               value={searchQuery}
@@ -409,25 +420,27 @@ function SearchPageContent(): JSX.Element {
         </form>
 
         <div className="row">
-          <div className={clsx('col', 'col--8', styles.searchResultsColumn)}>
+          <div className={clsx("col", "col--8", styles.searchResultsColumn)}>
             {!!searchResultState.totalResults &&
               documentsFoundPlural(searchResultState.totalResults)}
           </div>
 
           <div
             className={clsx(
-              'col',
-              'col--4',
-              'text--right',
-              styles.searchLogoColumn,
-            )}>
+              "col",
+              "col--4",
+              "text--right",
+              styles.searchLogoColumn
+            )}
+          >
             <Link
               to="https://www.algolia.com/"
               aria-label={translate({
-                id: 'theme.SearchPage.algoliaLabel',
-                message: 'Search by Algolia',
-                description: 'The ARIA label for Algolia mention',
-              })}>
+                id: "theme.SearchPage.algoliaLabel",
+                message: "Search by Algolia",
+                description: "The ARIA label for Algolia mention",
+              })}
+            >
               <svg viewBox="0 0 168 24" className={styles.algoliaLogo}>
                 <g fill="none">
                   <path
@@ -451,26 +464,30 @@ function SearchPageContent(): JSX.Element {
         {searchResultState.items.length > 0 ? (
           <main>
             {searchResultState.items.map(
-              ({title, url, summary, breadcrumbs}, i) => (
+              ({ title, url, summary, breadcrumbs }, i) => (
                 <article key={i} className={styles.searchResultItem}>
                   <Heading as="h2" className={styles.searchResultItemHeading}>
-                    <Link to={url} dangerouslySetInnerHTML={{__html: title}} />
+                    <Link
+                      to={url}
+                      dangerouslySetInnerHTML={{ __html: title }}
+                    />
                   </Heading>
 
                   {breadcrumbs.length > 0 && (
                     <nav aria-label="breadcrumbs">
                       <ul
                         className={clsx(
-                          'breadcrumbs',
-                          styles.searchResultItemPath,
-                        )}>
+                          "breadcrumbs",
+                          styles.searchResultItemPath
+                        )}
+                      >
                         {breadcrumbs.map((html, index) => (
                           <li
                             key={index}
                             className="breadcrumbs__item"
                             // Developer provided the HTML, so assume it's safe.
                             // eslint-disable-next-line react/no-danger
-                            dangerouslySetInnerHTML={{__html: html}}
+                            dangerouslySetInnerHTML={{ __html: html }}
                           />
                         ))}
                       </ul>
@@ -482,11 +499,11 @@ function SearchPageContent(): JSX.Element {
                       className={styles.searchResultItemSummary}
                       // Developer provided the HTML, so assume it's safe.
                       // eslint-disable-next-line react/no-danger
-                      dangerouslySetInnerHTML={{__html: summary}}
+                      dangerouslySetInnerHTML={{ __html: summary }}
                     />
                   )}
                 </article>
-              ),
+              )
             )}
           </main>
         ) : (
@@ -495,7 +512,8 @@ function SearchPageContent(): JSX.Element {
               <p key="no-results">
                 <Translate
                   id="theme.SearchPage.noResultsText"
-                  description="The paragraph for empty search result">
+                  description="The paragraph for empty search result"
+                >
                   No results were found
                 </Translate>
               </p>
@@ -510,7 +528,8 @@ function SearchPageContent(): JSX.Element {
           <div className={styles.loader} ref={setLoaderRef}>
             <Translate
               id="theme.SearchPage.fetchingNewResults"
-              description="The paragraph for fetching new search results">
+              description="The paragraph for fetching new search results"
+            >
               Fetching new results...
             </Translate>
           </div>
